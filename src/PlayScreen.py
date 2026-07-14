@@ -27,6 +27,25 @@ class GameView(arcade.View):
         super().__init__()
 
         self.background_color = arcade.color.AMAZON
+        self.background_texture = arcade.load_texture("assets/background.png")
+        # Load the image file as a reusable texture
+
+
+
+         # 1. Create a container to hold your sprites
+        self.player_list = arcade.SpriteList()
+        
+        # 2. Load the image into a Sprite object
+        # Pass the image path and an optional scale factor
+        self.player_sprite = arcade.Sprite("assets/butler.png", scale=0.15)
+        self.player_list.append(self.player_sprite)
+        
+        # 3. Position your sprite (X and Y coordinates)
+        #self.player_sprite.center_x = 0
+        #self.player_sprite.center_y = 0
+
+        self.player_sprite.center_x = WINDOW_WIDTH / 2
+        self.player_sprite.center_y = WINDOW_HEIGHT / 2
 
         # If you have sprite lists, you should create them here,
         # and set them to None
@@ -37,15 +56,10 @@ class GameView(arcade.View):
         pass
 
     def on_draw(self):
-        """
-        Render the screen.
-        """
-
-        # This command should happen before we start drawing. It will clear
-        # the screen to the background color, and erase what we drew last frame.
+        #arcade.draw_rectangle_filled(0, 0, 800, 600, self.background_texture)
         self.clear()
+        self.player_list.draw()
 
-        # Call draw() on all your sprite lists below
 
     def on_update(self, delta_time):
         """
@@ -53,7 +67,7 @@ class GameView(arcade.View):
         Normally, you'll call update() on the sprite lists that
         need it.
         """
-        pass
+        self.player_list.update()
 
     def on_key_press(self, key, key_modifiers):
         """
@@ -62,12 +76,39 @@ class GameView(arcade.View):
         For a full list of keys, see:
         https://api.arcade.academy/en/latest/arcade.key.html
         """
+
+        if key == arcade.key.LEFT:
+            print("The left arrow key is pressed")
+            self.player_sprite.change_x = -5
+            self.player_sprite.scale_x = -abs(self.player_sprite.scale_x)
+
+
+        if key == arcade.key.RIGHT:
+            print("The right arrow key is pressed")
+            self.player_sprite.change_x = 5
+            self.player_sprite.scale_x = abs(self.player_sprite.scale_x)
+
+        if key == arcade.key.UP:
+            print("The up arrow key is pressed")
+            self.player_sprite.change_y = 5
+            self.player_sprite.scale_y = abs(self.player_sprite.scale_y)
+
+
+        if key == arcade.key.DOWN:
+            print("The down arrow key is pressed")
+            self.player_sprite.change_y = -5
+            self.player_sprite.scale_y = -abs(self.player_sprite.scale_y)
+
         pass
 
     def on_key_release(self, key, key_modifiers):
         """
         Called whenever the user lets off a previously pressed key.
         """
+        if key == arcade.key.UP or key == arcade.key.DOWN:
+            self.player_sprite.change_y = 0
+        elif key == arcade.key.LEFT or key == arcade.key.RIGHT:
+            self.player_sprite.change_x = 0
         pass
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
