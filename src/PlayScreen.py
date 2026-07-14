@@ -26,10 +26,9 @@ class GameView(arcade.View):
     def __init__(self):
         super().__init__()
 
-        self.background_color = arcade.color.AMAZON
+        #self.background_color = arcade.color.AMAZON
         self.background_texture = arcade.load_texture("assets/background.png")
         # Load the image file as a reusable texture
-
 
 
          # 1. Create a container to hold your sprites
@@ -56,8 +55,8 @@ class GameView(arcade.View):
         pass
 
     def on_draw(self):
-        #arcade.draw_rectangle_filled(0, 0, 800, 600, self.background_texture)
         self.clear()
+        arcade.draw_texture_rect(self.background_texture, arcade.XYWH(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, WINDOW_WIDTH-10, WINDOW_HEIGHT-10))
         self.player_list.draw()
 
 
