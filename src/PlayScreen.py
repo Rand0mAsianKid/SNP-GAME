@@ -37,16 +37,13 @@ class GameView(arcade.View):
 
         # 1. Create a container to hold your sprites
         self.player_list = arcade.SpriteList()
-<<<<<<< Updated upstream
 
-    
-        self.player_sprite = arcade.Sprite("assets/butler.png", scale=0.15)
-=======
+
+
         
         # 2. Load the image into a Sprite object
         # Pass the image path and an optional scale factor
         self.player_sprite = arcade.Sprite("assets/char1.png", scale=0.15)
->>>>>>> Stashed changes
         self.player_list.append(self.player_sprite)
 
         self.player_sprite.center_x = WINDOW_WIDTH / 2
@@ -62,7 +59,9 @@ class GameView(arcade.View):
 
     def spawn_monster(self):
         """Create one monster on the left or right edge, moving toward the other side."""
-        monster = arcade.Sprite("assets/monster.png", scale=0.15)
+        imagegenerator = random.randint(0,3)
+        image = ["assets/one.png", "assets/two.png", "assets/three.png", "assets/four.png"]
+        monster = arcade.Sprite(image[imagegenerator], scale=0.15)
 
         monster.center_y = random.randint(50, WINDOW_HEIGHT - 50)
 
