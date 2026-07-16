@@ -27,7 +27,7 @@ class GameView(arcade.View):
         super().__init__()
 
         #self.background_color = arcade.color.AMAZON
-        self.background_texture = arcade.load_texture("assets/background.png")
+        self.background_texture = arcade.load_texture("assets/purps.png")
         # Load the image file as a reusable texture
 
 
