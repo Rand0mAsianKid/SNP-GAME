@@ -14,7 +14,7 @@ WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Starting Template"
 
 
-class GameView(arcade.View): a
+class GameView(arcade.View):
     """
     Main application class.
 
