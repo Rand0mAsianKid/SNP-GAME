@@ -7,6 +7,7 @@ template.
 If Python and Arcade are installed, this example can be run from the command line with:
 python -m arcade.examples.starting_template
 """
+from BattleScreen import Battle
 import arcade
 import random
 
@@ -93,6 +94,23 @@ class GameView(arcade.View):
         Normally, you'll call update() on the sprite lists that
         need it.
         """
+        #if arcade.check_for_collision(self.player_sprite, self.monster_list):
+        #    print("Player hit an enemy!")
+        # Check collision with all monsters
+        hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite,
+            self.monster_list
+        )
+
+        if hit_list:
+            print("Player hit a monster!")
+
+            # Optional: remove monsters that were hit
+            #for monster in hit_list:
+            #    monster.remove_from_sprite_lists()
+            self.window.show_view(Battle())
+
+
         self.player_list.update()
         self.monster_list.update()
 

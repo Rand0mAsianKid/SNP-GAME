@@ -9,11 +9,14 @@ python -m arcade.examples.starting_template
 """
 import random
 import math
+import time
 
 import arcade
 
 import pyttsx3
 import threading
+
+from BattleScreen import Battle
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -53,6 +56,10 @@ def speak_async(*phrases):
     threading.Thread(target=_run, daemon=True).start()
 
 
+def wait(seconds=2):
+    time.sleep(seconds)
+
+
 try:
     arcade.load_font("assets/fonts/OpenDyslexic-Regular.ttf")
     arcade.load_font("assets/fonts/OpenDyslexic-Bold.ttf")
@@ -87,7 +94,7 @@ questionList = [
         "THE DOG RUNS FAST.",
         "THE DOG RUNNING FAST.",
         "THE DOG RUNNED FAST.",
-        "THE DOG RUN FAST."
+        "THE DOG RUNS FAST."
     ],
     [
         "I DRINK _____ WHEN I AM THIRSTY.",
@@ -272,8 +279,7 @@ class GameView(UIView):
 
     def __init__(self):
         super().__init__()
-        self.random_int = random.randint(1, 5)
-
+        self.random_int = random.choice(range(1, len(questionList) + 1))
 
         self.background_color = (247, 238, 222)
 
@@ -420,6 +426,8 @@ class GameView(UIView):
         if answer_text == correct_text:
             print("Correct answer!")
             speak_async(answer_text, "Correct!")
+            wait(2.5)
+            self.window.show_view(Battle())
             #battle = PlayScreen()
         else:
             print("Incorrect answer.")
