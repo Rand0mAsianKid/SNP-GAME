@@ -37,9 +37,16 @@ class GameView(arcade.View):
 
         # 1. Create a container to hold your sprites
         self.player_list = arcade.SpriteList()
+<<<<<<< Updated upstream
 
     
         self.player_sprite = arcade.Sprite("assets/butler.png", scale=0.15)
+=======
+        
+        # 2. Load the image into a Sprite object
+        # Pass the image path and an optional scale factor
+        self.player_sprite = arcade.Sprite("assets/char1.png", scale=0.15)
+>>>>>>> Stashed changes
         self.player_list.append(self.player_sprite)
 
         self.player_sprite.center_x = WINDOW_WIDTH / 2
@@ -137,7 +144,7 @@ class GameView(arcade.View):
         if key == arcade.key.DOWN:
             print("The down arrow key is pressed")
             self.player_sprite.change_y = -5
-            self.player_sprite.scale_y = -abs(self.player_sprite.scale_y)
+            #self.player_sprite.scale_y = -abs(self.player_sprite.scale_y)
 
     def on_key_release(self, key, key_modifiers):
         """

@@ -279,6 +279,16 @@ class GameView(UIView):
 
         # 1. Create a container to hold your sprites
         self.player_list = arcade.SpriteList()
+        self.player_sprite = arcade.Sprite("assets/char1.png", scale=0.50)
+        self.player_list.append(self.player_sprite)
+        #self.player2_sprite = arcade.Sprite("assets/char2.png", scale=1)
+        #self.player_list.append(self.player2_sprite)
+
+        self.player_sprite.center_x = WINDOW_WIDTH / 2
+        self.player_sprite.center_y = WINDOW_HEIGHT / 2 - 30
+        #self.player2_sprite.center_x = WINDOW_WIDTH / 2 + 250
+        #self.player2_sprite.center_y = WINDOW_HEIGHT / 2
+
 
         question = questionList[self.random_int - 1][0]
 
@@ -410,11 +420,11 @@ class GameView(UIView):
         if answer_text == correct_text:
             print("Correct answer!")
             speak_async(answer_text, "Correct!")
-            battle = PlayScreen()
+            #battle = PlayScreen()
         else:
             print("Incorrect answer.")
             speak_async(answer_text, "Incorrect.")
-            battle = PlayScreen()
+            #battle = PlayScreen()
 
     def reset(self):
         """Reset the game to the initial state."""
