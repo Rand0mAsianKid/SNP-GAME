@@ -23,7 +23,7 @@ class Battle(arcade.View):
 
         self.forest_view = forest_view
 
-        self.background_texture = arcade.load_texture("assets/background.png")
+        self.background_texture = arcade.load_texture("assets/newbackground.png")
 
         self.char_list = arcade.SpriteList()
         self.char_sprite = arcade.Sprite("assets/char1.png", scale=0.4)
