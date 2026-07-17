@@ -16,8 +16,6 @@ import arcade
 import pyttsx3
 import threading
 
-from BattleScreen import Battle
-
 from PIL import Image, ImageDraw, ImageFilter
 
 from arcade.gui import (
@@ -43,9 +41,17 @@ engine1 = pyttsx3.init()
 
 speech_lock = threading.Lock()
 
+class Learn(arcade.View):
+    def __init__(self, forest_view=None):
+        super().__init__()
+
+        self.forest_view = forest_view
+
+    def on_draw(self):
+        self.clear()
 
 def speak_async(*phrases):
-    engine1.stop() 
+    engine1.stop()
 
     def _run():
         with speech_lock:
@@ -70,8 +76,8 @@ except FileNotFoundError:
     FONT_NAME_BOLD = ("arial", "calibri")
 
 QUESTION_FONT_SIZE = 40
-BUTTON_FONT_SIZE = 21          
-BUTTON_FONT_MIN_SIZE = 13      
+BUTTON_FONT_SIZE = 21
+BUTTON_FONT_MIN_SIZE = 13
 BUTTON_TEXT_H_MARGIN = 90
 BUTTON_TEXT_V_MARGIN = 18
 
@@ -121,7 +127,6 @@ questionList = [
         "THE CAT DRANK MILK."
     ]
 ]
-
 
 
 # ---------------------------------------------------------------------------
@@ -236,9 +241,7 @@ def make_glow(width, height, color=(255, 250, 235, 190), blur=18, radius=40):
 def fit_font_size(text, max_width, max_height, font_name,
                    start_size=BUTTON_FONT_SIZE, min_size=BUTTON_FONT_MIN_SIZE):
     """Shrink font_size (from start_size down to min_size) until the wrapped
-    text fits within max_width x max_height. Uses the same probe-Text trick
-    already used for measuring the title, so long answers on the smaller
-    buttons don't overflow the pill."""
+    text fits within max_width x max_height."""
     size = start_size
     while size > min_size:
         probe = arcade.Text(
@@ -277,27 +280,31 @@ BTN_TEXTURE_PRESSED = arcade.Texture(
 
 class GameView(UIView):
 
-    def __init__(self):
+    def __init__(self, battle_view=None):
         super().__init__()
         self.random_int = random.choice(range(1, len(questionList) + 1))
 
+        # The Battle instance that sent us here, if any. Correct answers
+        # report damage back to THIS battle, so its monster health bar
+        # persists across multiple quiz rounds instead of resetting.
+        self.battle_view = battle_view
+
+        # Guards against a second click sneaking through (e.g. a stray
+        # click on another answer button) while we're already in the
+        # "Correct! moving on..." delay below.
+        self._answer_locked = False
+
         self.background_color = (247, 238, 222)
 
-        # 1. Create a container to hold your sprites
         self.player_list = arcade.SpriteList()
         self.player_sprite = arcade.Sprite("assets/char1.png", scale=0.50)
         self.player_list.append(self.player_sprite)
-        #self.player2_sprite = arcade.Sprite("assets/char2.png", scale=1)
-        #self.player_list.append(self.player2_sprite)
 
         self.player_sprite.center_x = WINDOW_WIDTH / 2
         self.player_sprite.center_y = WINDOW_HEIGHT / 2 - 30
-        #self.player2_sprite.center_x = WINDOW_WIDTH / 2 + 250
-        #self.player2_sprite.center_y = WINDOW_HEIGHT / 2
-
 
         question = questionList[self.random_int - 1][0]
-
+        self.question_text = question  # stored; spoken later in on_show_view, not here
 
         split_at = len(question) // 2
         space_idx = question.find(" ", split_at)
@@ -332,8 +339,6 @@ class GameView(UIView):
         self.title_glow.center_y = title_y
         self.decor_sprite_list = arcade.SpriteList()
         self.decor_sprite_list.append(self.title_glow)
-
-        speak_async(question)
 
         grid = UIGridLayout(
             column_count=2,
@@ -413,26 +418,70 @@ class GameView(UIView):
             texture_button.trigger_full_render()
             grid.add(texture_button, row=row, column=col)
 
-
         anchor = UIAnchorLayout()
         anchor.add(grid, anchor_x="center", anchor_y="center", align_y=-40)
         self.ui.add(anchor)
 
+    def on_show_view(self):
+        """Runs when this view actually becomes visible."""
+        super().on_show_view()  # lets UIView enable self.ui so the buttons still work
+        speak_async(self.question_text)
+
+    def on_hide_view(self):
+        """Make sure a pending 'advance to battle' callback never fires
+        against a view that's no longer showing (e.g. if this view is torn
+        down for some other reason mid-delay)."""
+        arcade.unschedule(self._advance_after_correct_answer)
+
     def on_button_click(self, event):
         """Called when the texture button is clicked."""
+        if self._answer_locked:
+            return
+
         answer_text = event.source.text
         correct_text = questionList[self.random_int - 1][5]
 
         if answer_text == correct_text:
             print("Correct answer!")
             speak_async(answer_text, "Correct!")
-            wait(2.5)
-            self.window.show_view(Battle())
-            #battle = PlayScreen()
+
+            # Lock out further answer clicks and move on after a short
+            # delay. Importantly, this delay is done with arcade.schedule
+            # instead of time.sleep(): time.sleep() blocks the ENTIRE
+            # window for 2.5s (no rendering, no input processing at all).
+            # Any clicks made during that freeze get queued by the OS and
+            # all fire in one burst the instant the window unfreezes and
+            # switches to the battle screen — which is what was leaving
+            # the ATTACK button stuck. arcade.schedule() waits the same
+            # 2.5s without blocking anything, so input stays normal the
+            # whole time.
+            self._answer_locked = True
+            arcade.schedule(self._advance_after_correct_answer, 2.5)
         else:
             print("Incorrect answer.")
             speak_async(answer_text, "Incorrect.")
-            #battle = PlayScreen()
+
+    def _advance_after_correct_answer(self, delta_time):
+        """Runs ~2.5s after a correct answer (scheduled, non-blocking)."""
+        arcade.unschedule(self._advance_after_correct_answer)
+
+        if self.battle_view is not None:
+            self.battle_view.deal_damage_to_monster()
+
+            if self.battle_view.monster_health <= 0:
+                # Monster defeated — return to the map, ready for a
+                # fresh encounter (a new PlayScreen resets the monster
+                # spawner and player position automatically).
+                from PlayScreen import GameView as PlayGameView
+                self.window.show_view(PlayGameView())
+            else:
+                # Still fighting — go back to the same battle so its
+                # updated health bar shows, then ATTACK asks another question.
+                self.window.show_view(self.battle_view)
+        else:
+            # Fallback for testing this file standalone (no battle passed in).
+            from BattleScreen import Battle
+            self.window.show_view(Battle())
 
     def reset(self):
         """Reset the game to the initial state."""
@@ -453,45 +502,29 @@ class GameView(UIView):
         self.ui.draw()
 
     def on_update(self, delta_time):
-
         self.player_list.update()
 
     def on_key_press(self, key, key_modifiers):
-
-
         pass
 
     def on_key_release(self, key, key_modifiers):
- 
         pass
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
-
         pass
 
     def on_mouse_press(self, x, y, button, key_modifiers):
- 
-        #play_screen = PlayScreen.PlayScreen()   # or PlayScreen.GameView()
-        #self.window.show_view(play_screen)
         pass
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-    
         pass
 
 
 def main():
     """ Main function """
-    # Create a window class. This is what actually shows up on screen
     window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
-
-    # Create and setup the GameView
     game = GameView()
-
-    # Show GameView on screen
     window.show_view(game)
-
-    # Start the arcade game loop
     arcade.run()
 
 

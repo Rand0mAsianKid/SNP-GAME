@@ -7,6 +7,8 @@ template.
 If Python and Arcade are installed, this example can be run from the command line with:
 python -m arcade.examples.starting_template
 """
+import time
+
 from BattleScreen import Battle
 import arcade
 import random
@@ -15,35 +17,20 @@ WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Starting Template"
 
-MONSTER_SPAWN_INTERVAL = 3.0   
-MONSTER_SPEED = 3            
-MONSTER_VERTICAL_SPEED = 2     
+MONSTER_SPAWN_INTERVAL = 3.0
+MONSTER_SPEED = 3
+MONSTER_VERTICAL_SPEED = 2
 
 
 class GameView(arcade.View):
-    """
-    Main application class.
-
-    NOTE: Go ahead and delete the methods you don't need.
-    If you do need a method, delete the 'pass' and replace it
-    with your own code. Don't leave 'pass' in this program.
-    """
 
     def __init__(self):
         super().__init__()
 
-        #self.background_color = arcade.color.AMAZON
         self.background_texture = arcade.load_texture("assets/purps.png")
-        # Load the image file as a reusable texture
 
-        # 1. Create a container to hold your sprites
         self.player_list = arcade.SpriteList()
 
-
-
-        
-        # 2. Load the image into a Sprite object
-        # Pass the image path and an optional scale factor
         self.player_sprite = arcade.Sprite("assets/char1.png", scale=0.5)
         self.player_list.append(self.player_sprite)
 
@@ -54,13 +41,18 @@ class GameView(arcade.View):
 
         self.time_since_last_spawn = 0.0
 
+        # Pre-build the Battle view up front. If we waited and built it
+        # at the moment of collision, any texture/asset loading inside
+        # Battle.__init__ would happen mid-frame — that's the "delay".
+        self.battle_view = Battle()
+
     def reset(self):
         """Reset the game to the initial state."""
         pass
 
     def spawn_monster(self):
         """Create one monster on the left or right edge, moving toward the other side."""
-        imagegenerator = random.randint(0,3)
+        imagegenerator = random.randint(0, 3)
         image = ["assets/one.png", "assets/two.png", "assets/three.png", "assets/four.png"]
         monster = arcade.Sprite(image[imagegenerator], scale=0.2)
 
@@ -69,11 +61,11 @@ class GameView(arcade.View):
         spawn_side = random.choice(["left", "right"])
 
         if spawn_side == "left":
-            monster.center_x = -50               
-            monster.change_x = MONSTER_SPEED     
+            monster.center_x = -50
+            monster.change_x = MONSTER_SPEED
         else:
-            monster.center_x = WINDOW_WIDTH + 50  
-            monster.change_x = -MONSTER_SPEED     
+            monster.center_x = WINDOW_WIDTH + 50
+            monster.change_x = -MONSTER_SPEED
 
         monster.change_y = random.choice([-1, 1]) * MONSTER_VERTICAL_SPEED
 
@@ -89,28 +81,6 @@ class GameView(arcade.View):
         self.monster_list.draw()
 
     def on_update(self, delta_time):
-        """
-        All the logic to move, and the game logic goes here.
-        Normally, you'll call update() on the sprite lists that
-        need it.
-        """
-        #if arcade.check_for_collision(self.player_sprite, self.monster_list):
-        #    print("Player hit an enemy!")
-        # Check collision with all monsters
-        hit_list = arcade.check_for_collision_with_list(
-            self.player_sprite,
-            self.monster_list
-        )
-
-        if hit_list:
-            print("Player hit a monster!")
-
-            # Optional: remove monsters that were hit
-            #for monster in hit_list:
-            #    monster.remove_from_sprite_lists()
-            self.window.show_view(Battle())
-
-
         self.player_list.update()
         self.monster_list.update()
 
@@ -126,83 +96,60 @@ class GameView(arcade.View):
 
             if monster.center_y <= 0:
                 monster.center_y = 0
-                monster.change_y = abs(monster.change_y)   # force it to move up
+                monster.change_y = abs(monster.change_y)
             elif monster.center_y >= WINDOW_HEIGHT:
                 monster.center_y = WINDOW_HEIGHT
-                monster.change_y = -abs(monster.change_y)  # force it to move down
+                monster.change_y = -abs(monster.change_y)
 
-        hit_list = arcade.check_for_collision_with_list(self.player_sprite, self.monster_list)
+        # Single collision check, done once per frame.
+        hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite,
+            self.monster_list
+        )
 
         if hit_list:
-            print("You bumped into the monster!")
+            print("Player hit a monster!")
+            # Switch to the already-built Battle view — no loading here,
+            # so the transition is instant.
+            self.window.show_view(self.battle_view)
+            return  # stop this frame immediately, don't do more work after switching
 
     def on_key_press(self, key, key_modifiers):
-        """
-        Called whenever a key on the keyboard is pressed.
-
-        For a full list of keys, see:
-        https://api.arcade.academy/en/latest/arcade.key.html
-        """
         if key == arcade.key.LEFT:
-            print("The left arrow key is pressed")
             self.player_sprite.change_x = -5
             self.player_sprite.scale_x = -abs(self.player_sprite.scale_x)
 
         if key == arcade.key.RIGHT:
-            print("The right arrow key is pressed")
             self.player_sprite.change_x = 5
             self.player_sprite.scale_x = abs(self.player_sprite.scale_x)
 
         if key == arcade.key.UP:
-            print("The up arrow key is pressed")
             self.player_sprite.change_y = 5
             self.player_sprite.scale_y = abs(self.player_sprite.scale_y)
 
         if key == arcade.key.DOWN:
-            print("The down arrow key is pressed")
             self.player_sprite.change_y = -5
-            #self.player_sprite.scale_y = -abs(self.player_sprite.scale_y)
 
     def on_key_release(self, key, key_modifiers):
-        """
-        Called whenever the user lets off a previously pressed key.
-        """
         if key == arcade.key.UP or key == arcade.key.DOWN:
             self.player_sprite.change_y = 0
         elif key == arcade.key.LEFT or key == arcade.key.RIGHT:
             self.player_sprite.change_x = 0
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
-        """
-        Called whenever the mouse moves.
-        """
         pass
 
     def on_mouse_press(self, x, y, button, key_modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
         pass
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-        """
-        Called when a user releases a mouse button.
-        """
         pass
 
 
 def main():
-    """ Main function """
-    # Create a window class. This is what actually shows up on screen
     window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
-
-    # Create and setup the GameView
     game = GameView()
-
-    # Show GameView on screen
     window.show_view(game)
-
-    # Start the arcade game loop
     arcade.run()
 
 
