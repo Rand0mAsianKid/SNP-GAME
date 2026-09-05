@@ -33,6 +33,9 @@ from matplotlib.pylab import matrix
 
 import PlayScreen
 
+from game_state import state
+from audio_manager import music_manager, MUSIC_PATH
+
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Starting Template"
@@ -92,7 +95,7 @@ questionList = [
         "ANGRY",
         "GLAD",
         "TIRED",
-        "SAD"
+        "GLAD"
     ],
     [
         "WHICH SENTENCE IS CORRECT?",
@@ -315,21 +318,26 @@ class GameView(UIView):
 
         title_y = WINDOW_HEIGHT - 70
 
-        probe1 = arcade.Text(part1, x=0, y=title_y, font_size=QUESTION_FONT_SIZE,
+        # Text-size slider (Settings, in PlayScreen) scales the question
+        # title just like everything else -- read fresh each time a new
+        # question is built, so it always reflects the latest setting.
+        title_font_size = state.scaled(QUESTION_FONT_SIZE)
+
+        probe1 = arcade.Text(part1, x=0, y=title_y, font_size=title_font_size,
                               font_name=FONT_NAME_BOLD, bold=True)
-        probe2 = arcade.Text(part2, x=0, y=title_y, font_size=QUESTION_FONT_SIZE,
+        probe2 = arcade.Text(part2, x=0, y=title_y, font_size=title_font_size,
                               font_name=FONT_NAME_BOLD, bold=True)
         total_width = probe1.content_width + probe2.content_width
         start_x = WINDOW_WIDTH / 2 - total_width / 2
 
         self.title_text_1 = arcade.Text(
             part1, x=start_x, y=title_y, color=TITLE_COLOR_1,
-            font_size=QUESTION_FONT_SIZE, font_name=FONT_NAME_BOLD, bold=True,
+            font_size=title_font_size, font_name=FONT_NAME_BOLD, bold=True,
             anchor_x="left", anchor_y="center",
         )
         self.title_text_2 = arcade.Text(
             part2, x=start_x + probe1.content_width, y=title_y, color=TITLE_COLOR_2,
-            font_size=QUESTION_FONT_SIZE, font_name=FONT_NAME_BOLD, bold=True,
+            font_size=title_font_size, font_name=FONT_NAME_BOLD, bold=True,
             anchor_x="left", anchor_y="center",
         )
 
@@ -362,7 +370,9 @@ class GameView(UIView):
 
         for answer_text, (row, col) in zip(answers, positions):
             fitted_size = fit_font_size(
-                answer_text, text_max_width, text_max_height, FONT_NAME_BOLD
+                answer_text, text_max_width, text_max_height, FONT_NAME_BOLD,
+                start_size=state.scaled(BUTTON_FONT_SIZE),
+                min_size=state.scaled(BUTTON_FONT_MIN_SIZE),
             )
 
             button_style = {
@@ -426,6 +436,9 @@ class GameView(UIView):
         """Runs when this view actually becomes visible."""
         super().on_show_view()  # lets UIView enable self.ui so the buttons still work
         speak_async(self.question_text)
+        # Same shared track as the other screens -- if it's already
+        # playing, this just lets it keep going instead of restarting.
+        music_manager.play(MUSIC_PATH)
 
     def on_hide_view(self):
         """Make sure a pending 'advance to battle' callback never fires
@@ -499,6 +512,13 @@ class GameView(UIView):
         self.player_list.draw()
         self.title_text_1.draw()
         self.title_text_2.draw()
+
+        arcade.draw_text(
+            f"Coins: {state.currency}",
+            24, WINDOW_HEIGHT - 36,
+            arcade.color.GOLDENROD, font_size=state.scaled(16), bold=True,
+        )
+
         self.ui.draw()
 
     def on_update(self, delta_time):

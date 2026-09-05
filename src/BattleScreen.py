@@ -4,6 +4,9 @@ BattleScreen.py
 import arcade
 import arcade.gui
 
+from game_state import state
+from audio_manager import music_manager, MUSIC_PATH
+
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
@@ -76,6 +79,9 @@ class Battle(arcade.View):
     def on_show_view(self):
         """Called automatically when this view becomes the active one."""
         self.ui_manager.enable()
+        # Same shared track as the other screens -- if it's already
+        # playing, this just lets it keep going instead of restarting.
+        music_manager.play(MUSIC_PATH)
 
     def on_hide_view(self):
         """Called automatically when switching away from this view."""
@@ -84,8 +90,12 @@ class Battle(arcade.View):
     def deal_damage_to_monster(self):
         """Apply one player attack's worth of damage to the monster.
         Called by the quiz screen after a correct answer, so the monster's
-        health persists across multiple quiz rounds instead of resetting."""
-        self.monster_health -= PLAYER_ATTACK_DAMAGE
+        health persists across multiple quiz rounds instead of resetting.
+
+        Power Strike (bought in the Shop) adds straight onto the base
+        attack damage."""
+        damage = round(PLAYER_ATTACK_DAMAGE + state.damage_bonus)
+        self.monster_health -= damage
         if self.monster_health <= 0:
             self.monster_health = 0
             self.battle_over = True
@@ -130,7 +140,14 @@ class Battle(arcade.View):
         arcade.draw_text(
             self.message,
             WINDOW_WIDTH / 2, self.button_center_y + 90,
-            arcade.color.WHITE, font_size=20,
+            arcade.color.WHITE, font_size=state.scaled(20),
+            anchor_x="center", anchor_y="center", bold=True
+        )
+
+        arcade.draw_text(
+            f"Coins: {state.currency}",
+            WINDOW_WIDTH / 2, self.button_center_y + 55,
+            arcade.color.GOLD, font_size=state.scaled(16),
             anchor_x="center", anchor_y="center", bold=True
         )
 
@@ -138,7 +155,8 @@ class Battle(arcade.View):
 
     def draw_health_bar(self, x, y, width, height, current, max_health, label):
         """Draws a label + background bar + colored fill for a health bar."""
-        arcade.draw_text(label, x, y + height + 5, arcade.color.WHITE, font_size=14, bold=True)
+        arcade.draw_text(label, x, y + height + 5, arcade.color.WHITE,
+                          font_size=state.scaled(14), bold=True)
 
         arcade.draw_rect_filled(
             arcade.XYWH(x + width / 2, y + height / 2, width, height),
